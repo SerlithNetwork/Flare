@@ -5,6 +5,8 @@ import co.technove.flare.internal.profiling.dictionary.JavaMethod;
 import co.technove.flare.internal.profiling.dictionary.ProfileDictionary;
 import co.technove.flare.internal.profiling.dictionary.TypeValue;
 import co.technove.flare.proto.ProfilerFileProto;
+import com.google.common.collect.ImmutableTable;
+import com.google.common.collect.Table;
 import one.jfr.Dictionary;
 import one.jfr.JfrReader;
 import one.jfr.StackTrace;
@@ -20,6 +22,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -40,13 +43,22 @@ public class AsyncProfilerIntegration {
         if (initialized) {
             throw new InitializationException("Integration has already been initialized");
         }
-        String osName = System.getProperty("os.name");
-        if (osName.startsWith("Linux")) {
-            osName = "linux";
-        } else {
-            throw new InitializationException("Flare does not support the operating system " + osName);
+        String os = System.getProperty("os.name").toLowerCase(Locale.ROOT).replace(" ", "");
+        String arch = System.getProperty("os.arch").toLowerCase(Locale.ROOT);
+        String jvm = System.getProperty("java.vm.name");
+
+        Table<String, String, String> supported = ImmutableTable.<String, String, String>builder()
+                .put("linux", "amd64", "linux/amd64")
+                .put("linux", "aarch64", "linux/aarch64")
+                .put("macosx", "amd64", "macos")
+                .put("macosx", "aarch64", "macos")
+                .build();
+
+        String libPath = supported.get(os, arch);
+        if (libPath == null) {
+            throw new InitializationException("Flare does not support the operating system " + os);
         }
-        String path = osName + "-" + System.getProperty("os.arch") + "/libasyncProfiler.so";
+        String path = libPath + "/libasyncProfiler.so";
 
         final Path flare;
         try {
