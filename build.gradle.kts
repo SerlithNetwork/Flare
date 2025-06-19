@@ -65,6 +65,7 @@ dependencies {
 
     implementation("com.google.protobuf:protobuf-javalite:4.28.2")
     implementation("com.google.protobuf:protobuf-java-util:4.28.2")
+    implementation("com.google.guava:guava:33.4.8-jre")
 }
 
 publishing {

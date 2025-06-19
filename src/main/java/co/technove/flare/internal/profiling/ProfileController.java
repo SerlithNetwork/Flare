@@ -29,7 +29,7 @@ public class ProfileController implements Runnable {
         this.liveCollectors = liveCollectors;
         this.eventCollectors = eventCollectors;
 
-        this.connection = new ProfilingConnection(flare.getAuth(), ProtoHelper.createProfile(flare, eventCollectors, liveCollectors));
+        this.connection = new ProfilingConnection(flare.getAuth(), ProtoHelper.createProfile(flare, eventCollectors, liveCollectors), flare.getSenderMetadata());
 
         flare.getIntervalManager().schedule(this, Duration.ofMillis(50));
 

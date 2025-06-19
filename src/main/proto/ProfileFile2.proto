@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package net.serlith.flare.proto;
+
+option java_package = "net.serlith.flare.proto";
+option java_outer_classname = "ProfilerFileProto2";
+
+message CommandSenderMetadata {
+  Type type = 1;
+  string name = 2;
+  string uniqueId = 3;
+
+  enum Type {
+    OTHER = 0;
+    PLAYER = 1;
+  }
+}

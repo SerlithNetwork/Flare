@@ -6,12 +6,7 @@ import co.technove.flare.live.Collector;
 import co.technove.flare.live.category.GraphCategory;
 
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 
 public class FlareBuilder {
@@ -27,6 +22,7 @@ public class FlareBuilder {
     private Function<String, Optional<String>> classIdentifier;
     private HardwareBuilder hardwareBuilder;
     private OperatingSystemBuilder operatingSystemBuilder;
+    private SenderMetadataBuilder senderMetadataBuilder;
 
     public FlareBuilder() {
     }
@@ -91,6 +87,11 @@ public class FlareBuilder {
         return this;
     }
 
+    public FlareBuilder withSenderMetadata(SenderMetadataBuilder builder) {
+        this.senderMetadataBuilder = builder;
+        return this;
+    }
+
     public Flare build() {
         return new FlareInternal(
                 this.profileType,
@@ -103,7 +104,8 @@ public class FlareBuilder {
                 this.classIdentifier,
                 this.graphCategories,
                 this.hardwareBuilder,
-                this.operatingSystemBuilder
+                this.operatingSystemBuilder,
+                this.senderMetadataBuilder
         );
     }
 
@@ -229,4 +231,38 @@ public class FlareBuilder {
             return this;
         }
     }
+
+    public static class SenderMetadataBuilder {
+        private int type = 0;
+        private String name = "Console";
+        private UUID uniqueUuid = UUID.fromString("00000000-0000-0000-0000-000000000000");
+
+        public SenderMetadataBuilder() {
+        }
+
+        public int getType() {
+            return type;
+        }
+
+        public void setType(int type) {
+            this.type = type;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public UUID getUniqueUuid() {
+            return uniqueUuid;
+        }
+
+        public void setUniqueUuid(UUID uniqueUuid) {
+            this.uniqueUuid = uniqueUuid;
+        }
+    }
+
 }

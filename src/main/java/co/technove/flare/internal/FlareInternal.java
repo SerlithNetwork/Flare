@@ -15,6 +15,7 @@ import co.technove.flare.live.EventCollector;
 import co.technove.flare.live.LiveCollector;
 import co.technove.flare.live.category.GraphCategory;
 import co.technove.flare.proto.ProfilerFileProto;
+import net.serlith.flare.proto.ProfilerFileProto2;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -47,6 +48,7 @@ public class FlareInternal implements Flare {
     private final @NotNull Set<GraphCategory> defaultCategories;
     private final @Nullable FlareBuilder.HardwareBuilder hardwareBuilder;
     private final @Nullable FlareBuilder.OperatingSystemBuilder operatingSystemBuilder;
+    private final @Nullable FlareBuilder.SenderMetadataBuilder senderMetadataBuilder;
     private @Nullable ProfileController controller;
     private boolean running = false;
     private boolean ran = false;
@@ -64,7 +66,9 @@ public class FlareInternal implements Flare {
             @Nullable Function<String, Optional<String>> pluginForClass,
             @NotNull Set<GraphCategory> defaultCategories,
             @Nullable FlareBuilder.HardwareBuilder builder,
-            @Nullable FlareBuilder.OperatingSystemBuilder operatingSystemBuilder) {
+            @Nullable FlareBuilder.OperatingSystemBuilder operatingSystemBuilder,
+            @Nullable FlareBuilder.SenderMetadataBuilder senderMetadataBuilder
+    ) {
         this.profileType = Objects.requireNonNull(profileType, "Profile type must be defined");
         this.profileMemory = profileMemory;
         this.interval = Objects.requireNonNull(interval, "Interval must be defined");
@@ -75,6 +79,7 @@ public class FlareInternal implements Flare {
         this.defaultCategories = defaultCategories;
         this.hardwareBuilder = builder;
         this.operatingSystemBuilder = operatingSystemBuilder;
+        this.senderMetadataBuilder = senderMetadataBuilder;
 
         for (Collector collector : collectors) {
             if (collector instanceof LiveCollector) {
@@ -121,6 +126,17 @@ public class FlareInternal implements Flare {
                 .setFamily(this.operatingSystemBuilder.getFamily())
                 .setVersion(this.operatingSystemBuilder.getVersion())
                 .setBitness(this.operatingSystemBuilder.getBitness())
+                .build();
+    }
+
+    public ProfilerFileProto2.CommandSenderMetadata getSenderMetadata() {
+        if (this.senderMetadataBuilder == null) {
+            return null;
+        }
+        return ProfilerFileProto2.CommandSenderMetadata.newBuilder()
+                .setType(ProfilerFileProto2.CommandSenderMetadata.Type.forNumber(this.senderMetadataBuilder.getType()))
+                .setName(this.senderMetadataBuilder.getName())
+                .setUniqueId(this.senderMetadataBuilder.getUniqueUuid().toString())
                 .build();
     }
 
