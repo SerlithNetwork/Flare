@@ -49,8 +49,8 @@ public class AsyncProfilerIntegration {
         // String jvm = System.getProperty("java.vm.name");
 
         Table<String, String, String> supported = ImmutableTable.<String, String, String>builder()
-                .put("natives/linux", "amd64", "natives/linux/amd64")
-                .put("natives/linux", "aarch64", "natives/linux/aarch64")
+                .put("linux", "amd64", "natives/linux/amd64")
+                .put("linux", "aarch64", "natives/linux/aarch64")
                 .put("macosx", "amd64", "natives/macos")
                 .put("macosx", "aarch64", "natives/macos")
                 .build();
