@@ -13,7 +13,7 @@ java {
 }
 
 group = "com.github.technove"
-version = "4.0-SNAPSHOT"
+version = "4.0.0"
 
 repositories {
     mavenCentral()
@@ -29,7 +29,7 @@ sourceSets {
 
 protobuf {
     protoc {
-        artifact = "com.google.protobuf:protoc:3.8.0"
+        artifact = "com.google.protobuf:protoc:4.28.2"
     }
     generateProtoTasks {
         all().configureEach {
@@ -63,8 +63,8 @@ dependencies {
     compileOnly("org.jetbrains:annotations:24.0.0")
     implementation("com.eclipsesource.minimal-json:minimal-json:0.9.5")
 
-    implementation("com.google.protobuf:protobuf-javalite:3.17.3")
-    implementation("com.google.protobuf:protobuf-java-util:3.14.0")
+    implementation("com.google.protobuf:protobuf-javalite:4.28.2")
+    implementation("com.google.protobuf:protobuf-java-util:4.28.2")
 }
 
 publishing {
