@@ -26,6 +26,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class AsyncProfilerIntegration {
 
@@ -45,7 +46,7 @@ public class AsyncProfilerIntegration {
         }
         String os = System.getProperty("os.name").toLowerCase(Locale.ROOT).replace(" ", "");
         String arch = System.getProperty("os.arch").toLowerCase(Locale.ROOT);
-        String jvm = System.getProperty("java.vm.name");
+        // String jvm = System.getProperty("java.vm.name");
 
         Table<String, String, String> supported = ImmutableTable.<String, String, String>builder()
                 .put("natives/linux", "amd64", "natives/linux/amd64")
@@ -85,7 +86,7 @@ public class AsyncProfilerIntegration {
         List<String> warnings = new ArrayList<>();
 
         String[] required = new String[]{"-XX:+UnlockDiagnosticVMOptions", "-XX:+DebugNonSafepoints"};
-        List<String> arguments = ManagementFactory.getRuntimeMXBean().getInputArguments().stream().map(String::toLowerCase).collect(Collectors.toList());
+        List<String> arguments = ManagementFactory.getRuntimeMXBean().getInputArguments().stream().map(String::toLowerCase).toList();
         for (String s : required) {
             if (!arguments.contains(s.toLowerCase())) {
                 warnings.add("For optimal profiles, the following flags are missing: -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints");
@@ -99,7 +100,7 @@ public class AsyncProfilerIntegration {
         boolean supportsProfilingMemory = false;
         try {
             supportsProfilingMemory = profiler.execute("check,alloc").trim().equals("OK");
-        } catch (IOException | IllegalStateException e) {
+        } catch (IOException | IllegalStateException ignored) {
         }
 
         if (!supportsProfilingMemory) {
@@ -110,9 +111,8 @@ public class AsyncProfilerIntegration {
     }
 
     private static String execute(String command) throws IOException {
-        String val = profiler.execute(command);
-//        System.out.println("[Airplane] " + command + " -> " + val);
-        return val;
+        //        System.out.println("[Airplane] " + command + " -> " + val);
+        return profiler.execute(command);
     }
 
     synchronized static void startProfiling(FlareInternal flare) throws IOException {
@@ -127,7 +127,7 @@ public class AsyncProfilerIntegration {
         boolean supportsProfilingMemory = false;
         try {
             supportsProfilingMemory = profiler.execute("check,alloc").trim().equals("OK");
-        } catch (IOException | IllegalStateException e) {
+        } catch (IOException | IllegalStateException ignored) {
         }
 
         String alloc = supportsProfilingMemory && flare.isProfilingMemory() ? "alloc=" + ALLOC_INTERVAL + "," : "";
@@ -238,24 +238,16 @@ public class AsyncProfilerIntegration {
             throw new RuntimeException(e);
         } finally {
             profiling = false;
-            try {
-                for (Path path : Files.list(tempdir).collect(Collectors.toList())) {
+            try (Stream<Path> pathStream = Files.list(tempdir)) {
+                for (Path path : pathStream.toList()) {
                     Files.delete(path);
                 }
                 Files.delete(tempdir);
-            } catch (IOException e) {
+            } catch (IOException ignored) {
             }
         }
     }
 
-    private static final class FinalProfileData {
-        private final Map<String, ProfileSection> threads;
-        private final int samples;
-
-        private FinalProfileData(
-                Map<String, ProfileSection> threads, int samples) {
-            this.threads = threads;
-            this.samples = samples;
-        }
+    private record FinalProfileData(Map<String, ProfileSection> threads, int samples) {
     }
 }
