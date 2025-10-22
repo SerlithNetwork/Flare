@@ -13,6 +13,7 @@ import co.technove.flare.internal.util.IntervalManager;
 import co.technove.flare.live.Collector;
 import co.technove.flare.live.EventCollector;
 import co.technove.flare.live.LiveCollector;
+import co.technove.flare.live.PolledCollector;
 import co.technove.flare.live.category.GraphCategory;
 import co.technove.flare.proto.ProfilerFileProto;
 import org.jetbrains.annotations.NotNull;
@@ -41,6 +42,7 @@ public class FlareInternal implements Flare {
     private final @NotNull FlareAuth auth;
     private final List<LiveCollector> liveCollectors = new ArrayList<>();
     private final List<EventCollector> eventCollectors = new ArrayList<>();
+    private final List<PolledCollector> polledCollectors = new ArrayList<>();
     private final @Nullable Function<String, Optional<String>> pluginForClass;
     private final @NotNull ThreadState threadState = new ThreadState();
     private final @NotNull IntervalManager intervalManager = new IntervalManager();
@@ -81,6 +83,8 @@ public class FlareInternal implements Flare {
                 this.liveCollectors.add((LiveCollector) collector);
             } else if (collector instanceof EventCollector) {
                 this.eventCollectors.add((EventCollector) collector);
+            } else if (collector instanceof PolledCollector) {
+                this.polledCollectors.add((PolledCollector) collector);
             } else {
                 throw new RuntimeException("Unknown collector type");
             }
@@ -139,7 +143,7 @@ public class FlareInternal implements Flare {
             LockSupport.parkNanos(1000L);
         }
 
-        this.controller = new ProfileController(this, this.liveCollectors, this.eventCollectors);
+        this.controller = new ProfileController(this, this.liveCollectors, this.eventCollectors, this.polledCollectors);
         this.running = true;
         this.startTime = System.currentTimeMillis();
     }

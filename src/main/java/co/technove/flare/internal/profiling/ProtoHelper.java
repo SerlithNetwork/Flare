@@ -1,10 +1,7 @@
 package co.technove.flare.internal.profiling;
 
 import co.technove.flare.internal.FlareInternal;
-import co.technove.flare.live.Collector;
-import co.technove.flare.live.CollectorData;
-import co.technove.flare.live.EventCollector;
-import co.technove.flare.live.LiveCollector;
+import co.technove.flare.live.*;
 import co.technove.flare.live.category.GraphCategory;
 import co.technove.flare.live.formatter.DataFormatter;
 import co.technove.flare.proto.ProfilerFileProto;
@@ -23,7 +20,7 @@ import java.util.stream.Collectors;
 public class ProtoHelper {
 
     // move here because I hated seeing it in ProfileController
-    public static ProfilerFileProto.CreateProfile createProfile(FlareInternal flare, List<EventCollector> eventCollectors, List<LiveCollector> liveCollectors) {
+    public static ProfilerFileProto.CreateProfile createProfile(FlareInternal flare, List<EventCollector> eventCollectors, List<LiveCollector> liveCollectors, List<PolledCollector> polledCollectors) {
         List<ProfilerFileProto.CreateProfile.ConfigurationFile> files = new ArrayList<>();
 
         flare.getFiles().forEach((key, value) -> {
@@ -35,7 +32,7 @@ public class ProtoHelper {
 
         Map<String, ProfilerFileProto.CreateProfile.TimelineData> timelineData = new HashMap<>();
         Map<GraphCategory, Set<String>> categoryMap = new HashMap<>();
-        for (Iterator<Collector> it = Iterators.concat(eventCollectors.iterator(), liveCollectors.iterator()); it.hasNext(); ) {
+        for (Iterator<Collector> it = Iterators.concat(eventCollectors.iterator(), liveCollectors.iterator(), polledCollectors.iterator()); it.hasNext(); ) {
             Collector collector = it.next();
             for (CollectorData data : collector.getDataTypes()) {
                 timelineData.put(data.getId(), ProfilerFileProto.CreateProfile.TimelineData.newBuilder()

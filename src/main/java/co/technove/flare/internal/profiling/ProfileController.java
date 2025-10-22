@@ -5,6 +5,7 @@ import co.technove.flare.internal.FlareInternal;
 import co.technove.flare.internal.profiling.dictionary.ProfileDictionary;
 import co.technove.flare.live.EventCollector;
 import co.technove.flare.live.LiveCollector;
+import co.technove.flare.live.PolledCollector;
 
 import java.time.Duration;
 import java.util.List;
@@ -18,18 +19,20 @@ public class ProfileController implements Runnable {
     private final ProfilingConnection connection;
     private final List<LiveCollector> liveCollectors;
     private final List<EventCollector> eventCollectors;
+    private final List<PolledCollector> polledCollectors;
     private final ProfileDictionary dictionary = new ProfileDictionary();
     private int currentTick = 0;
     private int iterations = 0;
     private long startedAt;
     private boolean stopped = false;
 
-    public ProfileController(FlareInternal flare, List<LiveCollector> liveCollectors, List<EventCollector> eventCollectors) throws UserReportableException {
+    public ProfileController(FlareInternal flare, List<LiveCollector> liveCollectors, List<EventCollector> eventCollectors, List<PolledCollector> polledCollectors) throws UserReportableException {
         this.flare = flare;
         this.liveCollectors = liveCollectors;
         this.eventCollectors = eventCollectors;
+        this.polledCollectors = polledCollectors;
 
-        this.connection = new ProfilingConnection(flare.getAuth(), ProtoHelper.createProfile(flare, eventCollectors, liveCollectors));
+        this.connection = new ProfilingConnection(flare.getAuth(), ProtoHelper.createProfile(flare, eventCollectors, liveCollectors, polledCollectors));
 
         flare.getIntervalManager().schedule(this, Duration.ofMillis(50));
 
@@ -65,6 +68,16 @@ public class ProfileController implements Runnable {
             if (System.currentTimeMillis() - this.startedAt > 5000) { // report every 5s
                 long newStart = System.currentTimeMillis();
                 this.connection.sendTimelineData(ProtoHelper.createTimeline(this.eventCollectors, this.liveCollectors, this.startedAt, newStart));
+
+                // Collect from polled collectors
+                for (PolledCollector polledCollector : this.polledCollectors) {
+                    try {
+                        polledCollector.collect();
+                    } catch (Throwable t) {
+                        logger.log(Level.WARNING, "Failed to collect " + polledCollector.getClass().getName(), t);
+                    }
+                }
+
                 this.startedAt = newStart;
             }
 
