@@ -75,7 +75,7 @@ public class ProtoHelper {
                 .build();
     }
 
-    public static ProfilerFileProto.TimelineFile createTimeline(List<EventCollector> eventCollectors, List<LiveCollector> liveCollectors, long startedAt, long stoppedAt) {
+    public static ProfilerFileProto.TimelineFile createTimeline(List<EventCollector> eventCollectors, List<LiveCollector> liveCollectors, List<PolledCollector> polledCollectors, long startedAt, long stoppedAt) {
         return ProfilerFileProto.TimelineFile.newBuilder()
                 .setStartedAt(startedAt)
                 .setStoppedAt(stoppedAt)
@@ -91,6 +91,12 @@ public class ProtoHelper {
                         .collect(Collectors.toList()))
                 .addAllLive(liveCollectors.stream().map(liveCollector -> {
                     return liveCollector.useDataThenClear(map -> map.entrySet().stream().map(entry -> ProfilerFileProto.TimelineFile.LiveData.newBuilder()
+                            .setType(entry.getKey().getId())
+                            .addAllData(entry.getValue())
+                            .build()).collect(Collectors.toList()));
+                }).flatMap(List::stream).collect(Collectors.toList()))
+                .addAllLive(polledCollectors.stream().map(polledCollector -> {
+                    return polledCollector.useDataThenClear(map -> map.entrySet().stream().map(entry -> ProfilerFileProto.TimelineFile.LiveData.newBuilder()
                             .setType(entry.getKey().getId())
                             .addAllData(entry.getValue())
                             .build()).collect(Collectors.toList()));

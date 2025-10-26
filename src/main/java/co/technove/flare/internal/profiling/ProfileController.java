@@ -67,7 +67,7 @@ public class ProfileController implements Runnable {
 
             if (System.currentTimeMillis() - this.startedAt > 5000) { // report every 5s
                 long newStart = System.currentTimeMillis();
-                this.connection.sendTimelineData(ProtoHelper.createTimeline(this.eventCollectors, this.liveCollectors, this.startedAt, newStart));
+                this.connection.sendTimelineData(ProtoHelper.createTimeline(this.eventCollectors, this.liveCollectors, this.polledCollectors, this.startedAt, newStart));
 
                 // Collect from polled collectors
                 for (PolledCollector polledCollector : this.polledCollectors) {
@@ -134,7 +134,7 @@ public class ProfileController implements Runnable {
         }
 
         try {
-            this.connection.sendTimelineData(ProtoHelper.createTimeline(this.eventCollectors, this.liveCollectors, this.startedAt, System.currentTimeMillis()));
+            this.connection.sendTimelineData(ProtoHelper.createTimeline(this.eventCollectors, this.liveCollectors, this.polledCollectors, this.startedAt, System.currentTimeMillis()));
         } catch (UserReportableException e) {
             logger.log(Level.WARNING, "Failed to send timeline data", e);
         }
