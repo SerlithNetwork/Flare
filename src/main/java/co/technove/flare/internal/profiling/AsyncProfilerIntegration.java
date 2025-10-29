@@ -208,7 +208,7 @@ public class AsyncProfilerIntegration {
                             .setTimeMs(reader.durationNanos / 1000000)
                             .build())
                     .setData(ProfilerFileProto.AirplaneProfileFile.ProfileData.newBuilder()
-                            .setMemoryProfile(ProfilerFileProto.MemoryProfile.newBuilder()) // add blank profile, since we use the indiviudal fields now
+                            .setMemoryProfile(ProfilerFileProto.MemoryProfile.newBuilder()) // add blank profile, since we use the individual fields now
                     )
                     .setV2(ProfilerFileProto.AirplaneProfileFile.V2Data.newBuilder()
                             .addAllTimeProfile(cpuData.threads
@@ -218,7 +218,7 @@ public class AsyncProfilerIntegration {
                                             .setThread(entry.getKey())
                                             .setTime(entry.getValue().calculateTimeTaken())
                                             .setSamples(cpuData.samples)
-                                            .addAllChildren(entry.getValue().toTimeChild(dictionary).getChildrenList())
+                                            .addAllChildren(entry.getValue().toTimeChild(dictionary, 0).getChildrenList())
                                             .build())
                                     .collect(Collectors.toList()))
 
@@ -228,7 +228,7 @@ public class AsyncProfilerIntegration {
                                     .map(entry -> ProfilerFileProto.MemoryProfileV2.newBuilder()
                                             .setThread(entry.getKey())
                                             .setBytes(entry.getValue().calculateTimeTaken())
-                                            .addAllChildren(entry.getValue().toMemoryProfile(dictionary).getChildrenList())
+                                            .addAllChildren(entry.getValue().toMemoryProfile(dictionary, 0).getChildrenList())
                                             .build())
                                     .collect(Collectors.toList()))
 

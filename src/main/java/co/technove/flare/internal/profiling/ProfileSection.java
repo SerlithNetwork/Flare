@@ -12,6 +12,9 @@ import java.util.List;
 import java.util.Map;
 
 class ProfileSection {
+
+    private static final int MAX_NESTING_DEPTH = 9_000; // Limit seems to be around 10-20k without explicit -Xss configuration
+
     private final FlareInternal flare;
     private final TypeValue method;
     private final Map<TypeValue, ProfileSection> sections = new HashMap<>();
@@ -64,7 +67,7 @@ class ProfileSection {
         }
     }
 
-    public ProfilerFileProto.TimeProfileV2.Children toTimeChild(ProfileDictionary dictionary) {
+    public ProfilerFileProto.TimeProfileV2.Children toTimeChild(ProfileDictionary dictionary, int depth) {
         ProfilerFileProto.TimeProfileV2.Children.Builder builder = ProfilerFileProto.TimeProfileV2.Children.newBuilder();
         builder.setName(dictionary.getOrAddMethod(this.method));
         builder.setTime(this.calculateTimeTaken());
@@ -73,15 +76,15 @@ class ProfileSection {
         if (this.method instanceof JavaMethod) {
             this.flare.getPluginForClass(((JavaMethod) this.method).getRawClass()).ifPresent(builder::setPlugin);
         }
-        if (!this.sections.isEmpty()) {
+        if (!this.sections.isEmpty() && depth < MAX_NESTING_DEPTH) {
             List<ProfileSection> childrenList = new ArrayList<>(this.sections.values());
             childrenList.sort((c1, c2) -> (int) (c1.calculateTimeTaken() - c2.calculateTimeTaken()));
-            childrenList.stream().map(section -> section.toTimeChild(dictionary)).forEach(builder::addChildren);
+            childrenList.stream().map(section -> section.toTimeChild(dictionary, depth + 1)).forEach(builder::addChildren);
         }
         return builder.build();
     }
 
-    public ProfilerFileProto.MemoryProfileV2.Children toMemoryProfile(ProfileDictionary dictionary) {
+    public ProfilerFileProto.MemoryProfileV2.Children toMemoryProfile(ProfileDictionary dictionary, int depth) {
         ProfilerFileProto.MemoryProfileV2.Children.Builder builder = ProfilerFileProto.MemoryProfileV2.Children.newBuilder();
         builder.setName(dictionary.getOrAddMethod(this.method));
         builder.setBytes((int) this.calculateTimeTaken());
@@ -89,10 +92,10 @@ class ProfileSection {
         if (this.method instanceof JavaMethod) {
             this.flare.getPluginForClass(((JavaMethod) this.method).getRawClass()).ifPresent(builder::setPlugin);
         }
-        if (!this.sections.isEmpty()) {
+        if (!this.sections.isEmpty() && depth < MAX_NESTING_DEPTH) {
             List<ProfileSection> childrenList = new ArrayList<>(this.sections.values());
             childrenList.sort((c1, c2) -> (int) (c1.calculateTimeTaken() - c2.calculateTimeTaken()));
-            childrenList.stream().map(section -> section.toMemoryProfile(dictionary)).forEach(builder::addChildren);
+            childrenList.stream().map(section -> section.toMemoryProfile(dictionary, depth + 1)).forEach(builder::addChildren);
         }
         return builder.build();
     }
