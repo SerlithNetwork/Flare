@@ -13,7 +13,7 @@ import java.util.Map;
 
 class ProfileSection {
 
-    private static final int MAX_NESTING_DEPTH = 9_000; // Limit seems to be around 10-20k without explicit -Xss configuration
+    private static final int MAX_NESTING_DEPTH = 300; // Limit seems to be around 10-20k without explicit -Xss configuration
 
     private final FlareInternal flare;
     private final TypeValue method;
