@@ -27,6 +27,7 @@ public class FlareBuilder {
     private Function<String, Optional<String>> classIdentifier;
     private HardwareBuilder hardwareBuilder;
     private OperatingSystemBuilder operatingSystemBuilder;
+    private Runnable exceptionRunnable;
 
     public FlareBuilder() {
     }
@@ -91,6 +92,11 @@ public class FlareBuilder {
         return this;
     }
 
+    public FlareBuilder withExceptionRunnable(Runnable builder) {
+        this.exceptionRunnable = builder;
+        return this;
+    }
+
     public Flare build() {
         return new FlareInternal(
                 this.profileType,
@@ -103,7 +109,8 @@ public class FlareBuilder {
                 this.classIdentifier,
                 this.graphCategories,
                 this.hardwareBuilder,
-                this.operatingSystemBuilder
+                this.operatingSystemBuilder,
+                this.exceptionRunnable
         );
     }
 

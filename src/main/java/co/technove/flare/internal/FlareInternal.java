@@ -49,6 +49,7 @@ public class FlareInternal implements Flare {
     private final @NotNull Set<GraphCategory> defaultCategories;
     private final @Nullable FlareBuilder.HardwareBuilder hardwareBuilder;
     private final @Nullable FlareBuilder.OperatingSystemBuilder operatingSystemBuilder;
+    private final @Nullable Runnable exceptionRunnable;
     private @Nullable ProfileController controller;
     private boolean running = false;
     private boolean ran = false;
@@ -66,7 +67,8 @@ public class FlareInternal implements Flare {
             @Nullable Function<String, Optional<String>> pluginForClass,
             @NotNull Set<GraphCategory> defaultCategories,
             @Nullable FlareBuilder.HardwareBuilder builder,
-            @Nullable FlareBuilder.OperatingSystemBuilder operatingSystemBuilder) {
+            @Nullable FlareBuilder.OperatingSystemBuilder operatingSystemBuilder,
+            @Nullable Runnable exceptionRunnable) {
         this.profileType = Objects.requireNonNull(profileType, "Profile type must be defined");
         this.profileMemory = profileMemory;
         this.interval = Objects.requireNonNull(interval, "Interval must be defined");
@@ -77,6 +79,7 @@ public class FlareInternal implements Flare {
         this.defaultCategories = defaultCategories;
         this.hardwareBuilder = builder;
         this.operatingSystemBuilder = operatingSystemBuilder;
+        this.exceptionRunnable = exceptionRunnable;
 
         for (Collector collector : collectors) {
             if (collector instanceof LiveCollector) {
@@ -159,6 +162,10 @@ public class FlareInternal implements Flare {
         this.intervalManager.cancel();
         this.threadState.stop();
         this.controller.end();
+    }
+
+    public @Nullable Runnable getExceptionRunnable() {
+        return this.exceptionRunnable;
     }
 
     public @NotNull FlareAuth getAuth() {

@@ -98,6 +98,12 @@ public class ProfileController implements Runnable {
                 AsyncProfilerIntegration.stopProfiling(this.flare, this.dictionary);
             } catch (Exception e) {
             }
+            try {
+                Runnable runnable = this.flare.getExceptionRunnable();
+                if (runnable != null) {
+                    runnable.run();
+                }
+            } catch (Exception e) {}
             this.flare.stop();
         }
     }
