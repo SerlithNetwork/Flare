@@ -84,14 +84,14 @@ public class ProfileController implements Runnable {
             if (this.currentTick++ >= 20L * (this.iterations < 5 ? 5 : 15)) { // 5s for first 5 iterations, 15s for rest
                 this.iterations++;
                 this.currentTick = 0;
-                this.stop();
+                this.stop(true);
             }
         } catch (Throwable t) {
             logger.log(Level.WARNING, "Failed to run Flare controller", t);
 
             // just try and kill as much as possible
             try {
-                this.stop();
+                this.stop(true);
             } catch (Exception e) {
             }
             try {
@@ -108,12 +108,14 @@ public class ProfileController implements Runnable {
         }
     }
 
-    public synchronized void stop() {
+    public synchronized void stop(boolean reportException) {
         AsyncProfilerIntegration.stopProfiling(this.flare, this.dictionary).ifPresent(file -> {
             try {
                 this.connection.sendNewData(file.build());
             } catch (UserReportableException e) {
-                logger.log(Level.WARNING, e.getUserError(), e);
+                if (reportException) {
+                    logger.log(Level.WARNING, e.getUserError(), e);
+                }
             }
         });
     }
@@ -145,6 +147,6 @@ public class ProfileController implements Runnable {
             logger.log(Level.WARNING, "Failed to send timeline data", e);
         }
 
-        this.stop();
+        this.stop(false); // Profiler is already ending
     }
 }
