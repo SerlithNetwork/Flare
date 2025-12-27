@@ -3,7 +3,7 @@ plugins {
     idea
     `maven-publish`
     id("com.google.protobuf") version "0.9.4"
-    id("com.gradleup.shadow") version "8.3.0"
+    id("com.gradleup.shadow") version "9.2.2"
 }
 
 java {
@@ -69,10 +69,8 @@ dependencies {
 
 publishing {
     publications {
-        create<MavenPublication>("maven") {
-            shadow {
-                project.shadow.component(this@create)
-            }
+        create<MavenPublication>("shadow") {
+            from(components["shadow"])
         }
     }
 }
