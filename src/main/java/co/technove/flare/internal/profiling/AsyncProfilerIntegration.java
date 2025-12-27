@@ -141,11 +141,11 @@ public class AsyncProfilerIntegration {
         profiling = true;
     }
 
-    private static FinalProfileData getProfileData(FlareInternal flare, JfrReader reader, ProfileType type) {
+    private static FinalProfileData getProfileData(FlareInternal flare, JfrReader reader, ProfileType type) throws IOException {
         Map<String, ProfileSection> threadsMap = new HashMap<>();
         Dictionary<TypeValue> methodNames = new Dictionary<>(); // method names cache
 
-        EventAggregator agg = new EventAggregator(true, true);
+        EventAggregator agg = new EventAggregator(true, 0);
         int totalSamples = 0;
         for (Event event; (event = reader.readEvent(type.getEventClass())) != null; ) {
             agg.collect(event);
@@ -182,7 +182,7 @@ public class AsyncProfilerIntegration {
             }
         });
 
-        reader.resetRead(); // needed to read more events later
+        reader.rewind(); // needed to read more events later
 
         return new FinalProfileData(threadsMap, totalSamples);
     }
@@ -205,7 +205,7 @@ public class AsyncProfilerIntegration {
             return Optional.of(ProfilerFileProto.AirplaneProfileFile.newBuilder()
                     .setInfo(ProfilerFileProto.AirplaneProfileFile.ProfileInfo.newBuilder()
                             .setSamples(Math.max(cpuData.samples, allocData.samples))
-                            .setTimeMs(reader.durationNanos / 1000000)
+                            .setTimeMs(reader.durationNanos() / 1000000)
                             .build())
                     .setData(ProfilerFileProto.AirplaneProfileFile.ProfileData.newBuilder()
                             .setMemoryProfile(ProfilerFileProto.MemoryProfile.newBuilder()) // add blank profile, since we use the individual fields now
