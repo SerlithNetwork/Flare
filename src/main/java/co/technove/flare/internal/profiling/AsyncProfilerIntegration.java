@@ -176,7 +176,7 @@ public class AsyncProfilerIntegration {
 
             if (section != null) {
                 section.addSamples(Math.toIntExact(samples));
-                section.addTimeNs(value);
+                section.addTimeNs(type == ProfileType.ALLOC ? value : value * interval);
             }
         });
 
