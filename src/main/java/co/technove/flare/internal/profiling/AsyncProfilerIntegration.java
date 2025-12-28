@@ -180,7 +180,7 @@ public class AsyncProfilerIntegration {
             }
         });
 
-        reader.rewind(); // needed to read more events later
+        reader.resetRead(); // needed to read more events later
 
         return new FinalProfileData(threadsMap, totalSamples[0]);
     }

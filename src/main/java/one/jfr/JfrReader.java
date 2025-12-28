@@ -726,6 +726,11 @@ public class JfrReader implements Closeable {
         ensureBytes(CHUNK_HEADER_SIZE);
     }
 
+    // added manually, keep this class in check
+    public void resetRead() {
+        buf.position(CHUNK_HEADER_SIZE);
+    }
+
     private boolean ensureBytes(int needed) throws IOException {
         if (buf.remaining() >= needed) {
             return true;
