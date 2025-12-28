@@ -49,6 +49,7 @@ tasks.shadowJar {
         "com.google",
         "javax.annotation",
         "org.checkerframework",
+        "one"
     ).forEach {
         relocate(it, "co.technove.flare.libs/$it")
     }
@@ -65,6 +66,7 @@ dependencies {
 
     implementation("com.google.protobuf:protobuf-javalite:4.28.2")
     implementation("com.google.protobuf:protobuf-java-util:4.28.2")
+    // implementation("tools.profiler:jfr-converter:4.2") // async-profiler - we need to wait until 4.3 cuz x.x.x releases dont get uploaded to maven and we need 4.2.1
 }
 
 publishing {
