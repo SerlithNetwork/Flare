@@ -38,12 +38,20 @@ class ProfileSection {
         this.timeTaken = timeTaken;
     }
 
+    public void addTimeNs(long timeTaken) {
+        this.timeTaken += timeTaken;
+    }
+
     public int getSamples() {
         return samples;
     }
 
     public void setSamples(int samples) {
         this.samples = samples;
+    }
+
+    public void addSamples(int samples) {
+        this.samples += samples;
     }
 
     public ProfileSection getSection(TypeValue method) {
