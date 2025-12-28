@@ -22,7 +22,7 @@ public class FlareBuilder {
     private final Set<GraphCategory> graphCategories = new HashSet<>();
     private ProfileType profileType = ProfileType.ITIMER;
     private boolean profileMemory = false;
-    private Duration interval = Duration.ofMillis(5);
+    private Duration interval = Duration.ofMillis(4);
     private FlareAuth auth;
     private Function<String, Optional<String>> classIdentifier;
     private HardwareBuilder hardwareBuilder;
