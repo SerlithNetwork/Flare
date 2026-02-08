@@ -49,7 +49,6 @@ tasks.shadowJar {
         "com.google",
         "javax.annotation",
         "org.checkerframework",
-        "one"
     ).forEach {
         relocate(it, "co.technove.flare.libs/$it")
     }

@@ -20,6 +20,7 @@ import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -144,13 +145,13 @@ public class AsyncProfilerIntegration {
         Dictionary<TypeValue> methodNames = new Dictionary<>(); // method names cache
 
         EventAggregator agg = new EventAggregator(true, 0);
-        final int[] totalSamples = {0};
+        final AtomicLong totalSamples = new AtomicLong(0);
         for (Event event; (event = reader.readEvent(type.getEventClass())) != null; ) {
             agg.collect(event);
         }
 
         agg.forEach((event, value, samples) -> {
-            totalSamples[0] += (int) samples;
+            totalSamples.addAndGet(samples);
             StackTrace stackTrace = reader.stackTraces.get(event.stackTraceId);
             if (stackTrace == null) {
                 return;
@@ -175,14 +176,14 @@ public class AsyncProfilerIntegration {
             }
 
             if (section != null) {
-                section.addSamples(Math.toIntExact(samples));
-                section.addTimeNs(type == ProfileType.ALLOC ? value : value * interval);
+                section.setSamples(Math.toIntExact(samples));
+                section.setTimeTakenNs(type == ProfileType.ALLOC ? value : value * interval);
             }
         });
 
         reader.resetRead(); // needed to read more events later
 
-        return new FinalProfileData(threadsMap, totalSamples[0]);
+        return new FinalProfileData(threadsMap, totalSamples.intValue());
     }
 
     synchronized static Optional<ProfilerFileProto.AirplaneProfileFile.Builder> stopProfiling(FlareInternal flare, ProfileDictionary dictionary) {
