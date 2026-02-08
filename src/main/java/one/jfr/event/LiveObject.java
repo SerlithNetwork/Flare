@@ -5,14 +5,16 @@
 
 package one.jfr.event;
 
-public class ContendedLock extends Event {
-    public final long duration;
+public class LiveObject extends Event {
     public final int classId;
+    public final long allocationSize;
+    public final long allocationTime;
 
-    public ContendedLock(long time, int tid, int stackTraceId, long duration, int classId) {
+    public LiveObject(long time, int tid, int stackTraceId, int classId, long allocationSize, long allocationTime) {
         super(time, tid, stackTraceId);
-        this.duration = duration;
         this.classId = classId;
+        this.allocationSize = allocationSize;
+        this.allocationTime = allocationTime;
     }
 
     @Override
@@ -22,9 +24,9 @@ public class ContendedLock extends Event {
 
     @Override
     public boolean sameGroup(Event o) {
-        if (o instanceof ContendedLock) {
-            ContendedLock c = (ContendedLock) o;
-            return classId == c.classId;
+        if (o instanceof LiveObject) {
+            LiveObject a = (LiveObject) o;
+            return classId == a.classId;
         }
         return false;
     }
@@ -36,6 +38,6 @@ public class ContendedLock extends Event {
 
     @Override
     public long value() {
-        return duration;
+        return allocationSize;
     }
 }

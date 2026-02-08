@@ -19,12 +19,8 @@ import java.io.InputStream;
 import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -68,7 +64,7 @@ public class AsyncProfilerIntegration {
             throw new InitializationException("Could not create temporary directory", e);
         }
 
-        Path tmp = flare.resolve("libasycProfiler.so");
+        Path tmp = flare.resolve("libasyncProfiler.so");
         try (InputStream resource = AsyncProfilerIntegration.class.getClassLoader().getResourceAsStream(path)) {
             if (resource == null) {
                 throw new InitializationException("Failed to find " + path + " inside JAR, is this operating system supported?");
@@ -86,26 +82,19 @@ public class AsyncProfilerIntegration {
         List<String> warnings = new ArrayList<>();
 
         String[] required = new String[]{"-XX:+UnlockDiagnosticVMOptions", "-XX:+DebugNonSafepoints"};
+        List<String> lacking = new ArrayList<>();
         List<String> arguments = ManagementFactory.getRuntimeMXBean().getInputArguments().stream().map(String::toLowerCase).toList();
         for (String s : required) {
             if (!arguments.contains(s.toLowerCase())) {
-                warnings.add("For optimal profiles, the following flags are missing: -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints");
-                break;
+                lacking.add(s);
             }
+        }
+        if (!lacking.isEmpty()) {
+            warnings.add("For optimal profiles, the following flags are missing: " + String.join(" ", lacking));
         }
 
         profiler = AsyncProfiler.getInstance(tmp.toAbsolutePath().toString());
         initialized = true;
-
-        boolean supportsProfilingMemory = false;
-        try {
-            supportsProfilingMemory = profiler.execute("check,alloc").trim().equals("OK");
-        } catch (IOException | IllegalStateException ignored) {
-        }
-
-        if (!supportsProfilingMemory) {
-            warnings.add("Failed to find JVM debug symbols, allocation profiling will be disabled.");
-        }
 
         return warnings;
     }
@@ -124,13 +113,7 @@ public class AsyncProfilerIntegration {
         tempdir = Files.createTempDirectory("flare");
         profileFile = tempdir.resolve("flare.jfr").toString();
 
-        boolean supportsProfilingMemory = false;
-        try {
-            supportsProfilingMemory = profiler.execute("check,alloc").trim().equals("OK");
-        } catch (IOException | IllegalStateException ignored) {
-        }
-
-        String alloc = supportsProfilingMemory && flare.isProfilingMemory() ? "alloc=" + ALLOC_INTERVAL + "," : "";
+        String alloc = flare.isProfilingMemory() ? "alloc=" + ALLOC_INTERVAL + "," : "";
         String returned = execute("start,event=" + flare.getProfileType().getInternalName() + "," + alloc + "interval=" + interval + "ms,threads,filter,jstackdepth=1024,jfr,file=" + profileFile);
         for (Thread activeThread : flare.getThreadState().getActiveThreads()) {
             profiler.addThread(activeThread);
@@ -141,18 +124,18 @@ public class AsyncProfilerIntegration {
         profiling = true;
     }
 
-    private static FinalProfileData getProfileData(FlareInternal flare, JfrReader reader, ProfileType type) {
+    private static FinalProfileData getProfileData(FlareInternal flare, JfrReader reader, ProfileType type) throws IOException {
         Map<String, ProfileSection> threadsMap = new HashMap<>();
         Dictionary<TypeValue> methodNames = new Dictionary<>(); // method names cache
 
-        EventAggregator agg = new EventAggregator(true, true);
-        int totalSamples = 0;
+        EventAggregator agg = new EventAggregator(true, 0);
+        final AtomicLong totalSamples = new AtomicLong(0);
         for (Event event; (event = reader.readEvent(type.getEventClass())) != null; ) {
             agg.collect(event);
-            totalSamples++;
         }
 
         agg.forEach((event, value, samples) -> {
+            totalSamples.addAndGet(samples);
             StackTrace stackTrace = reader.stackTraces.get(event.stackTraceId);
             if (stackTrace == null) {
                 return;
@@ -182,9 +165,9 @@ public class AsyncProfilerIntegration {
             }
         });
 
-        reader.resetRead(); // needed to read more events later
+        reader.rewind(); // needed to read more events later
 
-        return new FinalProfileData(threadsMap, totalSamples);
+        return new FinalProfileData(threadsMap, totalSamples.intValue());
     }
 
     synchronized static Optional<ProfilerFileProto.AirplaneProfileFile.Builder> stopProfiling(FlareInternal flare, ProfileDictionary dictionary) {
@@ -205,7 +188,7 @@ public class AsyncProfilerIntegration {
             return Optional.of(ProfilerFileProto.AirplaneProfileFile.newBuilder()
                     .setInfo(ProfilerFileProto.AirplaneProfileFile.ProfileInfo.newBuilder()
                             .setSamples(Math.max(cpuData.samples, allocData.samples))
-                            .setTimeMs(reader.durationNanos / 1000000)
+                            .setTimeMs(reader.durationNanos() / 1000000)
                             .build())
                     .setData(ProfilerFileProto.AirplaneProfileFile.ProfileData.newBuilder()
                             .setMemoryProfile(ProfilerFileProto.MemoryProfile.newBuilder()) // add blank profile, since we use the individual fields now

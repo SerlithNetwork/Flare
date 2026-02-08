@@ -3,7 +3,7 @@ plugins {
     idea
     `maven-publish`
     id("com.google.protobuf") version "0.9.4"
-    id("com.gradleup.shadow") version "8.3.0"
+    id("com.gradleup.shadow") version "9.2.2"
 }
 
 java {
@@ -13,7 +13,7 @@ java {
 }
 
 group = "com.github.technove"
-version = "4.0.0"
+version = "4.1.0"
 
 repositories {
     mavenCentral()
@@ -65,14 +65,13 @@ dependencies {
 
     implementation("com.google.protobuf:protobuf-javalite:4.28.2")
     implementation("com.google.protobuf:protobuf-java-util:4.28.2")
+    // implementation("tools.profiler:jfr-converter:4.2") // async-profiler - we need to wait until 4.3 cuz x.x.x releases dont get uploaded to maven and we need 4.2.1
 }
 
 publishing {
     publications {
-        create<MavenPublication>("maven") {
-            shadow {
-                project.shadow.component(this@create)
-            }
+        create<MavenPublication>("shadow") {
+            from(components["shadow"])
         }
     }
 }

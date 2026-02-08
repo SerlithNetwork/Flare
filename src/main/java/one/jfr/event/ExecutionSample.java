@@ -1,26 +1,31 @@
 /*
- * Copyright 2021 Andrei Pangin
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright The async-profiler authors
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 package one.jfr.event;
 
 public class ExecutionSample extends Event {
-    public final int threadState;
+    // Synthetic thread state to distinguish samples converted from jdk.CPUTimeSample event.
+    // A small constant suitable for BitSet, does not clash with any existing thread state.
+    public static final int CPU_TIME_SAMPLE = 254;
 
-    public ExecutionSample(long time, int tid, int stackTraceId, int threadState) {
+    public final int threadState;
+    public final int samples;
+
+    public ExecutionSample(long time, int tid, int stackTraceId, int threadState, int samples) {
         super(time, tid, stackTraceId);
         this.threadState = threadState;
+        this.samples = samples;
+    }
+
+    @Override
+    public long samples() {
+        return samples;
+    }
+
+    @Override
+    public long value() {
+        return samples;
     }
 }
