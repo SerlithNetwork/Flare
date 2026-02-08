@@ -13,7 +13,7 @@ java {
 }
 
 group = "com.github.technove"
-version = "4.1.0-SNAPSHOT"
+version = "4.1.0"
 
 repositories {
     mavenCentral()
