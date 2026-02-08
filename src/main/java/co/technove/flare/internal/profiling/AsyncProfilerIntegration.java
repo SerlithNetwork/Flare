@@ -96,16 +96,6 @@ public class AsyncProfilerIntegration {
         profiler = AsyncProfiler.getInstance(tmp.toAbsolutePath().toString());
         initialized = true;
 
-        boolean supportsProfilingMemory = false;
-        try {
-            supportsProfilingMemory = profiler.execute("check,alloc").trim().equals("OK");
-        } catch (IOException | IllegalStateException ignored) {
-        }
-
-        if (!supportsProfilingMemory) {
-            warnings.add("Failed to find JVM debug symbols, allocation profiling will be disabled.");
-        }
-
         return warnings;
     }
 
@@ -123,13 +113,7 @@ public class AsyncProfilerIntegration {
         tempdir = Files.createTempDirectory("flare");
         profileFile = tempdir.resolve("flare.jfr").toString();
 
-        boolean supportsProfilingMemory = false;
-        try {
-            supportsProfilingMemory = profiler.execute("check,alloc").trim().equals("OK");
-        } catch (IOException | IllegalStateException ignored) {
-        }
-
-        String alloc = supportsProfilingMemory && flare.isProfilingMemory() ? "alloc=" + ALLOC_INTERVAL + "," : "";
+        String alloc = flare.isProfilingMemory() ? "alloc=" + ALLOC_INTERVAL + "," : "";
         String returned = execute("start,event=" + flare.getProfileType().getInternalName() + "," + alloc + "interval=" + interval + "ms,threads,filter,jstackdepth=1024,jfr,file=" + profileFile);
         for (Thread activeThread : flare.getThreadState().getActiveThreads()) {
             profiler.addThread(activeThread);
