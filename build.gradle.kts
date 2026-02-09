@@ -70,9 +70,25 @@ dependencies {
 
 publishing {
     publications {
-        create<MavenPublication>("shadow") {
-            from(components["shadow"])
+        create<MavenPublication>("maven") {
+            shadow {
+                groupId = project.group.toString()
+                artifactId = project.name
+                version = project.version.toString()
+
+                artifact(tasks["shadowJar"])
+
+                pom {
+                    name.set(project.name)
+                    description.set("Flare profiler")
+                    url.set("https://airplane.gg/")
+                }
+            }
         }
+    }
+
+    repositories {
+        mavenLocal()
     }
 }
 
