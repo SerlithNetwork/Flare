@@ -71,7 +71,7 @@ public class AsyncProfiler implements AsyncProfilerMXBean {
 
         try {
             String extractPath = System.getProperty("one.profiler.extractPath");
-            File file = File.createTempFile("libasyncProfiler-", ".so",
+            File file = File.createTempFile("flare-", "-libasyncProfiler.so",
                     extractPath == null || extractPath.isEmpty() ? null : new File(extractPath));
             try (FileOutputStream out = new FileOutputStream(file)) {
                 byte[] buf = new byte[32000];
