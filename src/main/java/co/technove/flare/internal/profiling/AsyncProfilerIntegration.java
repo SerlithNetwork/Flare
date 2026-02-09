@@ -134,7 +134,7 @@ public class AsyncProfilerIntegration {
             agg.collect(event);
         }
 
-        agg.forEach((event, value, samples) -> {
+        agg.forEach((event, samples, value) -> {
             totalSamples.addAndGet(samples);
             StackTrace stackTrace = reader.stackTraces.get(event.stackTraceId);
             if (stackTrace == null) {
