@@ -11,7 +11,8 @@ public enum ProfileType {
     CPU(Events.CPU, ExecutionSample.class),
     ALLOC(Events.ALLOC, AllocationSample.class),
     LOCK(Events.LOCK, ContendedLock.class),
-    WALL(Events.WALL, ExecutionSample.class);
+    WALL(Events.WALL, ExecutionSample.class),
+    CTIMER(Events.CTIMER, ExecutionSample.class);
 
     private final String internalName;
     private final Class<? extends Event> eventClass;
