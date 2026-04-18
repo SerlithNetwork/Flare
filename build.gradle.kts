@@ -2,7 +2,7 @@ plugins {
     java
     idea
     `maven-publish`
-    id("com.google.protobuf") version "0.9.4"
+    id("com.google.protobuf") version "0.9.6"
     id("com.gradleup.shadow") version "9.2.2"
 }
 
@@ -19,24 +19,10 @@ repositories {
     mavenCentral()
 }
 
-sourceSets {
-    main {
-        java {
-            srcDir("build/generated/source/proto/main/java")
-        }
-    }
-}
-
 protobuf {
     protoc {
         artifact = "com.google.protobuf:protoc:4.28.2"
     }
-    generateProtoTasks {
-        all().configureEach {
-            builtins.first { it.name == "java" }.option("lite")
-        }
-    }
-    generatedFilesBaseDir = "$projectDir/src/generated"
 }
 
 tasks.shadowJar {
