@@ -35,6 +35,7 @@ public class AsyncProfilerIntegration {
     private static Path tempdir = null;
     private static String profileFile = null;
     private static long interval;
+    private static Set<ProfileType> supportedEvents;
 
     public static List<String> init() throws InitializationException {
         if (initialized) {
@@ -96,6 +97,24 @@ public class AsyncProfilerIntegration {
         profiler = AsyncProfiler.getInstance(tmp.toAbsolutePath().toString());
         initialized = true;
 
+        // Referenced from spark https://github.com/lucko/spark/commit/a0692cc218f563c482628715e540e2140fc1bb7d
+        try {
+            String response = profiler.execute("list");
+            List<String> lines = Arrays.stream(response.split("\\r?\\n"))
+                    .filter(line -> line.startsWith("  "))
+                    .map(String::trim)
+                    .toList();
+            supportedEvents = Arrays.stream(ProfileType.values())
+                    .filter(event -> lines.contains(event.getInternalName()))
+                    .collect(Collectors.toSet());
+        } catch (Exception ignore) {
+            supportedEvents = Set.of();
+        }
+
+        if (!supportedEvents.contains(ProfileType.ALLOC)) {
+            warnings.add("Failed to find JVM debug symbols, allocation profiling will be disabled.");
+        }
+
         return warnings;
     }
 
@@ -113,7 +132,8 @@ public class AsyncProfilerIntegration {
         tempdir = Files.createTempDirectory("flare");
         profileFile = tempdir.resolve("flare.jfr").toString();
 
-        String alloc = flare.isProfilingMemory() ? "alloc=" + ALLOC_INTERVAL + "," : "";
+        boolean supportsProfilingMemory = supportedEvents.contains(ProfileType.ALLOC);
+        String alloc = supportsProfilingMemory && flare.isProfilingMemory() ? "alloc=" + ALLOC_INTERVAL + "," : "";
         String returned = execute("start,event=" + flare.getProfileType().getInternalName() + "," + alloc + "interval=" + interval + "ms,threads,filter,jstackdepth=1024,jfr,file=" + profileFile);
         for (Thread activeThread : flare.getThreadState().getActiveThreads()) {
             profiler.addThread(activeThread);
