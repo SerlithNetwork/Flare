@@ -112,7 +112,7 @@ public class AsyncProfilerIntegration {
         }
 
         if (!supportedEvents.contains(ProfileType.ALLOC)) {
-            warnings.add("Failed to find JVM debug symbols, allocation profiling will be disabled.");
+            warnings.add("Allocation profiling is not supported by your JVM, it will be disabled.");
         }
 
         return warnings;
