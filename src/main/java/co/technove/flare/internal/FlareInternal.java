@@ -16,8 +16,8 @@ import co.technove.flare.live.LiveCollector;
 import co.technove.flare.live.PolledCollector;
 import co.technove.flare.live.category.GraphCategory;
 import co.technove.flare.proto.ProfilerFileProto;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.net.URI;
 import java.time.Duration;
@@ -34,21 +34,21 @@ import java.util.function.Function;
 public class FlareInternal implements Flare {
 
     private static boolean initialized = false;
-    private final @NotNull ProfileType profileType;
+    private final @NonNull ProfileType profileType;
     private final boolean profileMemory;
-    private final @NotNull Duration interval;
-    private final @NotNull Map<String, String> files;
-    private final @NotNull Map<String, String> versions;
-    private final @NotNull FlareAuth auth;
+    private final @NonNull Duration interval;
+    private final @NonNull Map<String, String> files;
+    private final @NonNull Map<String, String> versions;
+    private final @NonNull FlareAuth auth;
     private final List<LiveCollector> liveCollectors = new ArrayList<>();
     private final List<EventCollector> eventCollectors = new ArrayList<>();
     private final List<PolledCollector> polledCollectors = new ArrayList<>();
     private final @Nullable Function<String, Optional<String>> pluginForClass;
-    private final @NotNull ThreadState threadState = new ThreadState();
-    private final @NotNull IntervalManager intervalManager = new IntervalManager();
-    private final @NotNull Set<GraphCategory> defaultCategories;
-    private final @Nullable FlareBuilder.HardwareBuilder hardwareBuilder;
-    private final @Nullable FlareBuilder.OperatingSystemBuilder operatingSystemBuilder;
+    private final @NonNull ThreadState threadState = new ThreadState();
+    private final @NonNull IntervalManager intervalManager = new IntervalManager();
+    private final @NonNull Set<GraphCategory> defaultCategories;
+    private final FlareBuilder.@Nullable HardwareBuilder hardwareBuilder;
+    private final FlareBuilder.@Nullable OperatingSystemBuilder operatingSystemBuilder;
     private final @Nullable Runnable exceptionRunnable;
     private @Nullable ProfileController controller;
     private boolean running = false;
@@ -57,17 +57,17 @@ public class FlareInternal implements Flare {
     private Long endTime;
 
     public FlareInternal(
-            @NotNull ProfileType profileType,
+            @NonNull ProfileType profileType,
             boolean profileMemory,
-            @NotNull Duration interval,
-            @NotNull Map<String, String> files,
-            @NotNull Map<String, String> versions,
-            @NotNull Collection<Collector> collectors,
-            @NotNull FlareAuth auth,
+            @NonNull Duration interval,
+            @NonNull Map<String, String> files,
+            @NonNull Map<String, String> versions,
+            @NonNull Collection<Collector> collectors,
+            @NonNull FlareAuth auth,
             @Nullable Function<String, Optional<String>> pluginForClass,
-            @NotNull Set<GraphCategory> defaultCategories,
-            @Nullable FlareBuilder.HardwareBuilder builder,
-            @Nullable FlareBuilder.OperatingSystemBuilder operatingSystemBuilder,
+            @NonNull Set<GraphCategory> defaultCategories,
+            FlareBuilder.@Nullable HardwareBuilder builder,
+            FlareBuilder.@Nullable OperatingSystemBuilder operatingSystemBuilder,
             @Nullable Runnable exceptionRunnable) {
         this.profileType = Objects.requireNonNull(profileType, "Profile type must be defined");
         this.profileMemory = profileMemory;
@@ -168,11 +168,11 @@ public class FlareInternal implements Flare {
         return this.exceptionRunnable;
     }
 
-    public @NotNull FlareAuth getAuth() {
+    public @NonNull FlareAuth getAuth() {
         return auth;
     }
 
-    public @NotNull ProfileType getProfileType() {
+    public @NonNull ProfileType getProfileType() {
         return profileType;
     }
 
@@ -180,7 +180,7 @@ public class FlareInternal implements Flare {
         return profileMemory;
     }
 
-    public @NotNull Duration getInterval() {
+    public @NonNull Duration getInterval() {
         return interval;
     }
 
@@ -205,15 +205,15 @@ public class FlareInternal implements Flare {
         return Optional.of(this.auth.getUri().resolve("/" + this.controller.getId()));
     }
 
-    public @NotNull Map<String, String> getFiles() {
+    public @NonNull Map<String, String> getFiles() {
         return files;
     }
 
-    public @NotNull Map<String, String> getVersions() {
+    public @NonNull Map<String, String> getVersions() {
         return versions;
     }
 
-    public @NotNull IntervalManager getIntervalManager() {
+    public @NonNull IntervalManager getIntervalManager() {
         return intervalManager;
     }
 
@@ -221,11 +221,11 @@ public class FlareInternal implements Flare {
         return this.pluginForClass == null ? Optional.empty() : this.pluginForClass.apply(className);
     }
 
-    public @NotNull ThreadState getThreadState() {
+    public @NonNull ThreadState getThreadState() {
         return threadState;
     }
 
-    public @NotNull Set<GraphCategory> getDefaultCategories() {
+    public @NonNull Set<GraphCategory> getDefaultCategories() {
         return defaultCategories;
     }
 }

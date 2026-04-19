@@ -2,8 +2,8 @@ package co.technove.flare.live;
 
 import co.technove.flare.live.category.GraphCategory;
 import co.technove.flare.live.formatter.DataFormatter;
+import org.jspecify.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import java.util.Optional;
 
 public class CollectorData {

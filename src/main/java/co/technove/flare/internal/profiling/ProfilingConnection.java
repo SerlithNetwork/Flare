@@ -6,7 +6,7 @@ import co.technove.flare.proto.ProfilerFileProto;
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.ParseException;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -86,7 +86,7 @@ class ProfilingConnection {
         }
     }
 
-    public @NotNull String getId() {
+    public @NonNull String getId() {
         return id;
     }
 

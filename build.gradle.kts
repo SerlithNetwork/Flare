@@ -3,7 +3,7 @@ plugins {
     idea
     `maven-publish`
     id("com.google.protobuf") version "0.9.6"
-    id("com.gradleup.shadow") version "9.2.2"
+    id("com.gradleup.shadow") version "9.3.0"
 }
 
 java {
@@ -21,7 +21,7 @@ repositories {
 
 protobuf {
     protoc {
-        artifact = "com.google.protobuf:protoc:4.28.2"
+        artifact = "com.google.protobuf:protoc:4.34.0"
     }
 }
 
@@ -33,7 +33,6 @@ tasks.shadowJar {
     listOf(
         "com.eclipsesource",
         "com.google",
-        "javax.annotation",
         "org.checkerframework",
     ).forEach {
         relocate(it, "co.technove.flare.libs/$it")
@@ -46,11 +45,11 @@ tasks.jar {
 }
 
 dependencies {
-    compileOnly("org.jetbrains:annotations:24.0.0")
+    compileOnly("org.jspecify:jspecify:1.0.0")
     implementation("com.eclipsesource.minimal-json:minimal-json:0.9.5")
 
-    implementation("com.google.protobuf:protobuf-javalite:4.28.2")
-    implementation("com.google.protobuf:protobuf-java-util:4.28.2")
+    implementation("com.google.protobuf:protobuf-java:4.34.0")
+    implementation("com.google.guava:guava:33.5.0-jre")
     // implementation("tools.profiler:jfr-converter:4.2") // async-profiler - we need to wait until 4.3 cuz x.x.x releases dont get uploaded to maven and we need 4.2.1
 }
 
