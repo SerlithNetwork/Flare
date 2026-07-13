@@ -30,6 +30,7 @@ public class IntervalManager {
 
     public void cancel() {
         this.shutdown = true;
+        this.exec.shutdown();
         try {
             if (!this.exec.awaitTermination(5, TimeUnit.SECONDS)) {
                 this.exec.shutdownNow();
