@@ -13,6 +13,7 @@ import java.lang.reflect.Constructor;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
@@ -35,7 +36,7 @@ public class JfrReader implements Closeable {
     private static final byte STATE_EOF = 2;
     private static final byte STATE_INCOMPLETE = 3;
 
-    private final FileChannel ch;
+    private final SeekableByteChannel ch;
     private ByteBuffer buf;
     private final long fileSize;
     private long filePosition;
@@ -64,15 +65,17 @@ public class JfrReader implements Closeable {
     public final Map<String, Map<Integer, String>> enums = new HashMap<>();
 
     private final Dictionary<Constructor<? extends Event>> customEvents = new Dictionary<>();
+    private final Map<String, Class<? extends Event>> customEventsByName = new HashMap<>();
 
     private int executionSample;
     private int nativeMethodSample;
     private int wallClockSample;
-    private int methodTrace;
     private int allocationInNewTLAB;
     private int allocationOutsideTLAB;
     private int allocationSample;
     private int liveObject;
+    private int span;
+    private int methodTrace;
     private int monitorEnter;
     private int threadPark;
     private int activeSetting;
@@ -83,7 +86,11 @@ public class JfrReader implements Closeable {
     private boolean hasWallTimeSpan;
 
     public JfrReader(String fileName) throws IOException {
-        this.ch = FileChannel.open(Paths.get(fileName), StandardOpenOption.READ);
+        this(FileChannel.open(Paths.get(fileName), StandardOpenOption.READ));
+    }
+
+    public JfrReader(SeekableByteChannel ch) throws IOException {
+        this.ch = ch;
         this.buf = ByteBuffer.allocateDirect(BUFFER_SIZE);
         this.fileSize = ch.size();
 
@@ -129,6 +136,11 @@ public class JfrReader implements Closeable {
     }
 
     public <E extends Event> void registerEvent(String name, Class<E> eventClass) {
+        customEventsByName.put(name, eventClass);
+        registerCustomEvent(name, eventClass);
+    }
+
+    private <E extends Event> void registerCustomEvent(String name, Class<E> eventClass) {
         JfrClass type = typesByName.get(name);
         if (type != null) {
             try {
@@ -136,6 +148,22 @@ public class JfrReader implements Closeable {
             } catch (NoSuchMethodException e) {
                 throw new IllegalArgumentException("No suitable constructor found");
             }
+        }
+    }
+
+    private void registerCustomEvents() {
+        customEvents.clear();
+
+        // The following classes are instantiated reflectively.
+        // Make sure to list them in reachability-metadata.json.
+        registerCustomEvent("jdk.CPULoad", CPULoad.class);
+        registerCustomEvent("jdk.GCHeapSummary", GCHeapSummary.class);
+        registerCustomEvent("jdk.ObjectCount", ObjectCount.class);
+        registerCustomEvent("jdk.ObjectCountAfterGC", ObjectCount.class);
+        registerCustomEvent("profiler.ProcessSample", ProcessSample.class);
+
+        for (Map.Entry<String, Class<? extends Event>> entry : customEventsByName.entrySet()) {
+            registerCustomEvent(entry.getKey(), entry.getValue());
         }
     }
 
@@ -186,14 +214,16 @@ public class JfrReader implements Closeable {
                 if (cls == null || cls == ExecutionSample.class) return (E) readExecutionSample(false);
             } else if (type == wallClockSample) {
                 if (cls == null || cls == ExecutionSample.class) return (E) readExecutionSample(true);
-            } else if (type == methodTrace) {
-                if (cls == null || cls == MethodTrace.class) return (E) readMethodTrace();
             } else if (type == allocationInNewTLAB) {
                 if (cls == null || cls == AllocationSample.class) return (E) readAllocationSample(true);
             } else if (type == allocationOutsideTLAB || type == allocationSample) {
                 if (cls == null || cls == AllocationSample.class) return (E) readAllocationSample(false);
             } else if (type == cpuTimeSample) {
                 if (cls == null || cls == ExecutionSample.class) return (E) readCPUTimeSample();
+            } else if (type == span) {
+                if (cls == null || cls.isAssignableFrom(SpanEvent.class)) return (E) readSpan();
+            } else if (type == methodTrace) {
+                if (cls == null || cls.isAssignableFrom(MethodTrace.class)) return (E) readMethodTrace();
             } else if (type == malloc) {
                 if (cls == null || cls == MallocEvent.class) return (E) readMallocEvent(true);
             } else if (type == free) {
@@ -211,12 +241,14 @@ public class JfrReader implements Closeable {
             } else {
                 Constructor<? extends Event> customEvent = customEvents.get(type);
                 if (customEvent != null && (cls == null || cls == customEvent.getDeclaringClass())) {
+                    long eventEnd = filePosition + pos + size;
+                    ensureBytes(size - (buf.position() - pos));
                     try {
                         return (E) customEvent.newInstance(this);
                     } catch (ReflectiveOperationException e) {
                         throw new IllegalStateException(e);
                     } finally {
-                        seek(filePosition + pos + size);
+                        seek(eventEnd);
                     }
                 }
             }
@@ -238,15 +270,6 @@ public class JfrReader implements Closeable {
         return new ExecutionSample(time, tid, stackTraceId, threadState, samples);
     }
 
-    private MethodTrace readMethodTrace() {
-        long startTime = getVarlong();
-        long duration = getVarlong();
-        int tid = getVarint();
-        int stackTraceId = getVarint();
-        int method = getVarint();
-        return new MethodTrace(startTime, tid, stackTraceId, method, duration);
-    }
-
     private AllocationSample readAllocationSample(boolean tlab) {
         long time = getVarlong();
         int tid = getVarint();
@@ -265,6 +288,23 @@ public class JfrReader implements Closeable {
         long samplingPeriod = getVarlong();
         boolean biased = getBoolean();
         return new ExecutionSample(time, tid, stackTraceId, ExecutionSample.CPU_TIME_SAMPLE, 1);
+    }
+
+    private SpanEvent readSpan() {
+        long startTime = getVarlong();
+        long duration = getVarlong();
+        int tid = getVarint();
+        String tag = strings.get(getVarlong());
+        return new SpanEvent(startTime, tid, duration, tag);
+    }
+
+    private MethodTrace readMethodTrace() {
+        long startTime = getVarlong();
+        long duration = getVarlong();
+        int tid = getVarint();
+        int stackTraceId = getVarint();
+        int method = getVarint();
+        return new MethodTrace(startTime, tid, stackTraceId, duration, method);
     }
 
     private NativeLockEvent readNativeLockEvent() {
@@ -359,6 +399,7 @@ public class JfrReader implements Closeable {
         readMeta(chunkStart + metaOffset);
         readConstantPool(chunkStart + cpOffset);
         cacheEventTypes();
+        registerCustomEvents();
 
         seek(chunkStart + CHUNK_HEADER_SIZE);
         state = STATE_READING;
@@ -601,11 +642,12 @@ public class JfrReader implements Closeable {
         executionSample = getTypeId("jdk.ExecutionSample");
         nativeMethodSample = getTypeId("jdk.NativeMethodSample");
         wallClockSample = getTypeId("profiler.WallClockSample");
-        methodTrace = getTypeId("jdk.MethodTrace");
         allocationInNewTLAB = getTypeId("jdk.ObjectAllocationInNewTLAB");
         allocationOutsideTLAB = getTypeId("jdk.ObjectAllocationOutsideTLAB");
         allocationSample = getTypeId("jdk.ObjectAllocationSample");
         liveObject = getTypeId("profiler.LiveObject");
+        span = getTypeId("profiler.Span");
+        methodTrace = getTypeId("jdk.MethodTrace");
         monitorEnter = getTypeId("jdk.JavaMonitorEnter");
         threadPark = getTypeId("jdk.ThreadPark");
         activeSetting = getTypeId("jdk.ActiveSetting");
@@ -613,12 +655,6 @@ public class JfrReader implements Closeable {
         free = getTypeId("profiler.Free");
         cpuTimeSample = getTypeId("jdk.CPUTimeSample");
         nativeLock = getTypeId("profiler.NativeLock");
-
-        registerEvent("jdk.CPULoad", CPULoad.class);
-        registerEvent("jdk.GCHeapSummary", GCHeapSummary.class);
-        registerEvent("jdk.ObjectCount", ObjectCount.class);
-        registerEvent("jdk.ObjectCountAfterGC", ObjectCount.class);
-        registerEvent("profiler.ProcessSample", ProcessSample.class);
 
         JfrClass wallClass = typesByName.get("profiler.WallClockSample");
         hasWallTimeSpan = wallClass != null && wallClass.field("timeSpan") != null;

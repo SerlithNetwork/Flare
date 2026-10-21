@@ -120,7 +120,7 @@ public class JavaMethod extends TypeValue {
         MethodDictionarySlice.MethodDictionaryEntry.Builder builder = MethodDictionarySlice.MethodDictionaryEntry.newBuilder();
         MethodDictionarySlice.JavaDictionaryEntry.Builder entry = MethodDictionarySlice.JavaDictionaryEntry.newBuilder();
 
-        int lambdaIndex = this.classString.indexOf("$$Lambda$");
+        int lambdaIndex = this.classString.indexOf("$$Lambda");
         String lambdaText = "";
         String classString = this.classString;
         if (lambdaIndex > -1) {
@@ -142,7 +142,7 @@ public class JavaMethod extends TypeValue {
         String[] splitSig = this.signatureStr.substring(1).split("\\)");
         List<MethodDictionarySlice.JavaDictionaryEntry.JavaTypeValue> params = Arrays
                 .stream(splitSig[0].split(";"))
-                .filter(val -> val.length() > 0)
+                .filter(val -> !val.isEmpty())
                 .map(type -> {
                     try {
                         return mapType(type, dictionary);

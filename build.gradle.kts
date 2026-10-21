@@ -2,8 +2,8 @@ plugins {
     java
     idea
     `maven-publish`
-    id("com.google.protobuf") version "0.9.6"
-    id("com.gradleup.shadow") version "9.3.0"
+    id("com.google.protobuf") version "0.10.0"
+    id("com.gradleup.shadow") version "9.6.1"
 }
 
 java {
@@ -21,7 +21,7 @@ repositories {
 
 protobuf {
     protoc {
-        artifact = "com.google.protobuf:protoc:4.34.0"
+        artifact = "com.google.protobuf:protoc:4.36.2"
     }
 }
 
@@ -45,23 +45,23 @@ tasks.jar {
 }
 
 dependencies {
-    compileOnly("org.jspecify:jspecify:1.0.0")
+    compileOnly("org.jspecify:jspecify:1.0.1")
     implementation("com.eclipsesource.minimal-json:minimal-json:0.9.5")
 
-    implementation("com.google.protobuf:protobuf-java:4.34.0")
-    implementation("com.google.guava:guava:33.5.0-jre")
+    implementation("com.google.protobuf:protobuf-java:4.36.2")
+    implementation("com.google.guava:guava:33.6.0-jre")
     // implementation("tools.profiler:jfr-converter:4.2") // async-profiler - we need to wait until 4.3 cuz x.x.x releases dont get uploaded to maven and we need 4.2.1
 }
 
 publishing {
     publications {
-        create<MavenPublication>("maven") {
+        register<MavenPublication>("maven") {
             shadow {
                 groupId = project.group.toString()
                 artifactId = project.name
                 version = project.version.toString()
 
-                artifact(tasks["shadowJar"])
+                artifact(tasks.shadowJar)
 
                 pom {
                     name.set(project.name)
@@ -76,6 +76,3 @@ publishing {
         mavenLocal()
     }
 }
-
-
-
