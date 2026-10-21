@@ -181,7 +181,11 @@ public class AsyncProfilerIntegration {
 
             if (section != null) {
                 section.setSamples(Math.toIntExact(samples));
-                section.setTimeTakenNs(type == ProfileType.ALLOC ? value : value * interval);
+                section.setTimeTakenNs(switch (type) {
+                    case ALLOC -> value;
+                    case LOCK -> (long) (value * (1e9 / reader.ticksPerSec));
+                    default -> value * interval;
+                });
             }
         });
 
