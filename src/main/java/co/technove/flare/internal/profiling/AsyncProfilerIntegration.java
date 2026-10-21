@@ -134,7 +134,10 @@ public class AsyncProfilerIntegration {
 
         boolean supportsProfilingMemory = supportedEvents.contains(ProfileType.ALLOC);
         String alloc = supportsProfilingMemory && flare.isProfilingMemory() ? "alloc=" + ALLOC_INTERVAL + "," : "";
-        String returned = execute("start,event=" + flare.getProfileType().getInternalName() + "," + alloc + "interval=" + interval + "ms,threads,filter,jstackdepth=1024,jfr,file=" + profileFile);
+        String sampling = flare.getProfileType() == ProfileType.LOCK
+                ? "lock=10000," // 10 µs threshold, matches spark
+                : "interval=" + interval + "ms,";
+        String returned = execute("start,event=" + flare.getProfileType().getInternalName() + "," + alloc + sampling + "threads,filter,jstackdepth=1024,jfr,file=" + profileFile);
         for (Thread activeThread : flare.getThreadState().getActiveThreads()) {
             profiler.addThread(activeThread);
         }
