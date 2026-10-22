@@ -209,8 +209,12 @@ public class AsyncProfilerIntegration {
         }
 
         try (JfrReader reader = new JfrReader(profileFile)) {
-            FinalProfileData cpuData = getProfileData(flare, reader, flare.getProfileType());
+            boolean allocOnly = flare.getProfileType() == ProfileType.ALLOC;
+            FinalProfileData cpuData = allocOnly
+                    ? new FinalProfileData(Map.of(), 0) // alloc data is bytes, the time view would render it as ms
+                    : getProfileData(flare, reader, flare.getProfileType());
             FinalProfileData allocData = getProfileData(flare, reader, ProfileType.ALLOC);
+            long divisor = flare.getProfileType() == ProfileType.LOCK ? 1_000_000L : 1L;
 
             return Optional.of(ProfilerFileProto.AirplaneProfileFile.newBuilder()
                     .setInfo(ProfilerFileProto.AirplaneProfileFile.ProfileInfo.newBuilder()
@@ -221,16 +225,21 @@ public class AsyncProfilerIntegration {
                             .setMemoryProfile(ProfilerFileProto.MemoryProfile.newBuilder()) // add blank profile, since we use the individual fields now
                     )
                     .setV2(ProfilerFileProto.AirplaneProfileFile.V2Data.newBuilder()
-                            .addAllTimeProfile(cpuData.threads
-                                    .entrySet()
-                                    .stream()
-                                    .map(entry -> ProfilerFileProto.TimeProfileV2.newBuilder()
-                                            .setThread(entry.getKey())
-                                            .setTime(entry.getValue().calculateTimeTaken())
-                                            .setSamples(cpuData.samples)
-                                            .addAllChildren(entry.getValue().toTimeChild(dictionary, 0).getChildrenList())
+                            // create a dummy time profile when the mode is alloc-only
+                            .addAllTimeProfile(allocOnly
+                                    ? List.of(ProfilerFileProto.TimeProfileV2.newBuilder()
+                                            .setThread("Allocation profile, no timings reported")
+                                            .setTime(0)
+                                            .setSamples(1)
                                             .build())
-                                    .collect(Collectors.toList()))
+                                    : cpuData.threads.entrySet().stream()
+                                            .map(entry -> ProfilerFileProto.TimeProfileV2.newBuilder()
+                                                    .setThread(entry.getKey())
+                                                    .setTime(entry.getValue().calculateTimeTaken() / divisor)
+                                                    .setSamples(cpuData.samples)
+                                                    .addAllChildren(entry.getValue().toTimeChild(dictionary, 0, divisor).getChildrenList())
+                                                    .build())
+                                            .collect(Collectors.toList()))
 
                             .addAllMemoryProfile(allocData.threads
                                     .entrySet()
