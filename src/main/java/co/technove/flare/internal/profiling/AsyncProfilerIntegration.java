@@ -225,21 +225,16 @@ public class AsyncProfilerIntegration {
                             .setMemoryProfile(ProfilerFileProto.MemoryProfile.newBuilder()) // add blank profile, since we use the individual fields now
                     )
                     .setV2(ProfilerFileProto.AirplaneProfileFile.V2Data.newBuilder()
-                            // create a dummy time profile when the mode is alloc-only
-                            .addAllTimeProfile(allocOnly
-                                    ? List.of(ProfilerFileProto.TimeProfileV2.newBuilder()
-                                            .setThread("Allocation profile, no timings reported")
-                                            .setTime(0)
-                                            .setSamples(1)
+                            .addAllTimeProfile(cpuData.threads
+                                    .entrySet()
+                                    .stream()
+                                    .map(entry -> ProfilerFileProto.TimeProfileV2.newBuilder()
+                                            .setThread(entry.getKey())
+                                            .setTime(entry.getValue().calculateTimeTaken() / divisor)
+                                            .setSamples(cpuData.samples)
+                                            .addAllChildren(entry.getValue().toTimeChild(dictionary, 0, divisor).getChildrenList())
                                             .build())
-                                    : cpuData.threads.entrySet().stream()
-                                            .map(entry -> ProfilerFileProto.TimeProfileV2.newBuilder()
-                                                    .setThread(entry.getKey())
-                                                    .setTime(entry.getValue().calculateTimeTaken() / divisor)
-                                                    .setSamples(cpuData.samples)
-                                                    .addAllChildren(entry.getValue().toTimeChild(dictionary, 0, divisor).getChildrenList())
-                                                    .build())
-                                            .collect(Collectors.toList()))
+                                    .collect(Collectors.toList()))
 
                             .addAllMemoryProfile(allocData.threads
                                     .entrySet()
