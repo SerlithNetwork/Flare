@@ -134,7 +134,10 @@ public class AsyncProfilerIntegration {
 
         boolean supportsProfilingMemory = supportedEvents.contains(ProfileType.ALLOC);
         String alloc = supportsProfilingMemory && flare.isProfilingMemory() ? "alloc=" + ALLOC_INTERVAL + "," : "";
-        String returned = execute("start,event=" + flare.getProfileType().getInternalName() + "," + alloc + "interval=" + interval + "ms,threads,filter,jstackdepth=1024,jfr,file=" + profileFile);
+        String sampling = flare.getProfileType() == ProfileType.LOCK
+                ? "lock=10000," // 10 µs threshold, matches spark
+                : "interval=" + interval + "ms,";
+        String returned = execute("start,event=" + flare.getProfileType().getInternalName() + "," + alloc + sampling + "threads,filter,jstackdepth=1024,jfr,file=" + profileFile);
         for (Thread activeThread : flare.getThreadState().getActiveThreads()) {
             profiler.addThread(activeThread);
         }
@@ -181,7 +184,11 @@ public class AsyncProfilerIntegration {
 
             if (section != null) {
                 section.setSamples(Math.toIntExact(samples));
-                section.setTimeTakenNs(type == ProfileType.ALLOC ? value : value * interval);
+                section.setTimeTakenNs(switch (type) {
+                    case ALLOC -> value;
+                    case LOCK -> (long) (value * (1e9 / reader.ticksPerSec));
+                    default -> value * interval;
+                });
             }
         });
 
@@ -202,8 +209,12 @@ public class AsyncProfilerIntegration {
         }
 
         try (JfrReader reader = new JfrReader(profileFile)) {
-            FinalProfileData cpuData = getProfileData(flare, reader, flare.getProfileType());
+            boolean allocOnly = flare.getProfileType() == ProfileType.ALLOC;
+            FinalProfileData cpuData = allocOnly
+                    ? new FinalProfileData(Map.of(), 0) // alloc data is bytes, the time view would render it as ms
+                    : getProfileData(flare, reader, flare.getProfileType());
             FinalProfileData allocData = getProfileData(flare, reader, ProfileType.ALLOC);
+            long divisor = flare.getProfileType() == ProfileType.LOCK ? 1_000_000L : 1L;
 
             return Optional.of(ProfilerFileProto.AirplaneProfileFile.newBuilder()
                     .setInfo(ProfilerFileProto.AirplaneProfileFile.ProfileInfo.newBuilder()
@@ -219,9 +230,9 @@ public class AsyncProfilerIntegration {
                                     .stream()
                                     .map(entry -> ProfilerFileProto.TimeProfileV2.newBuilder()
                                             .setThread(entry.getKey())
-                                            .setTime(entry.getValue().calculateTimeTaken())
+                                            .setTime(entry.getValue().calculateTimeTaken() / divisor)
                                             .setSamples(cpuData.samples)
-                                            .addAllChildren(entry.getValue().toTimeChild(dictionary, 0).getChildrenList())
+                                            .addAllChildren(entry.getValue().toTimeChild(dictionary, 0, divisor).getChildrenList())
                                             .build())
                                     .collect(Collectors.toList()))
 

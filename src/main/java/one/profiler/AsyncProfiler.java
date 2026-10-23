@@ -71,7 +71,7 @@ public class AsyncProfiler implements AsyncProfilerMXBean {
 
         try {
             String extractPath = System.getProperty("one.profiler.extractPath");
-            File file = File.createTempFile("flare-", "-libasyncProfiler.so",
+            File file = File.createTempFile("flare-", "-libasyncProfiler.so", // Changed from original
                     extractPath == null || extractPath.isEmpty() ? null : new File(extractPath));
             try (FileOutputStream out = new FileOutputStream(file)) {
                 byte[] buf = new byte[32000];
@@ -201,7 +201,7 @@ public class AsyncProfiler implements AsyncProfilerMXBean {
     @Override
     public String dumpCollapsed(Counter counter) {
         try {
-            return execute0("collapsed," + counter.name().toLowerCase());
+            return execute0("collapsed," + (counter == Counter.SAMPLES ? "samples" : "total"));
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
@@ -242,12 +242,13 @@ public class AsyncProfiler implements AsyncProfilerMXBean {
      * <p>
      * This API is UNSTABLE and might change or be removed in the next version of async-profiler.
      *
+     * @param counter Which counter to use for aggregation
      * @return OTLP representation of the profile
      */
     @Override
-    public byte[] dumpOtlp() {
+    public byte[] dumpOtlp(Counter counter) {
         try {
-            return execute1("otlp");
+            return execute1("otlp," + (counter == Counter.SAMPLES ? "samples" : "total"));
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
